@@ -10,6 +10,7 @@ import {
   getUser,
   updateAccountDetails,
   updateUserAvatar,
+  getUserChannelProfile,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -38,4 +39,9 @@ router.route("/update-account").patch(verifyJWT, updateAccountDetails);
 router
   .route("/avatar")
   .patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
+
+router
+  .route("/channel-profile/:userName")
+  .get(verifyJWT, getUserChannelProfile);
+
 export default router;
