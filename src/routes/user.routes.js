@@ -11,6 +11,7 @@ import {
   updateAccountDetails,
   updateUserAvatar,
   getUserChannelProfile,
+  getWatchHistory,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -43,5 +44,6 @@ router
 router
   .route("/channel-profile/:userName")
   .get(verifyJWT, getUserChannelProfile);
+router.route("/history").get(verifyJWT, getWatchHistory);
 
 export default router;
