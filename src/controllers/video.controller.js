@@ -36,7 +36,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
   }
 
   let videoAggregate;
-
+  console.log(matchCondition);
   try {
     videoAggregate = Video.aggregate([
       { $match: matchCondition },
@@ -50,6 +50,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
             {
               $project: {
                 userName: 1,
+                email: 1,
                 avatar: 1,
               },
             },
@@ -177,17 +178,37 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  const { title, description, thumbnail } = req.body;
+  const { title, description } = req.body;
   //TODO: update video details like title, description, thumbnail
   if (!videoId) {
     throw new ApiError(400, "video not found");
   }
+
+  const video = await Video.findById(videoId, {
+    thumbnail: 1,
+  });
+
+  const thumbnailLocalPath = req.file?.path || null;
+  console.log(thumbnailLocalPath);
+  let thumbnailFile;
+  if (thumbnailLocalPath) {
+    await deleteImageFromCloudinary(video.thumbnail.public_id);
+    thumbnailFile = await uploadOnCloudinary(thumbnailLocalPath);
+  }
   console.log("testing this " + title);
+  const updateFields = {
+    title,
+    description,
+  };
+
+  if (thumbnailFile) {
+    updateFields.thumbnail = {
+      url: thumbnailFile.url,
+      public_id: thumbnailFile.public_id,
+    };
+  }
   const updateVideo = await Video.findByIdAndUpdate(videoId, {
-    $set: {
-      title,
-      description,
-    },
+    $set: updateFields,
   });
 
   res
@@ -223,6 +244,33 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+
+  if (!videoId) {
+    throw new ApiError(400, "video not found");
+  }
+  const video = await Video.findById(videoId, {
+    isPublished: 1,
+    owner: 1,
+  });
+  if (req.user._id.toString() !== video.owner.toString()) {
+    throw new ApiError(400, "You are not allowed modify ");
+  }
+  await Video.findByIdAndUpdate(videoId, {
+    $set: {
+      isPublished: !video.isPublished,
+    },
+  });
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        201,
+        {},
+        !video.isPublished
+          ? "Video published successfully"
+          : "Video unpublished successfully"
+      )
+    );
 });
 
 export {
