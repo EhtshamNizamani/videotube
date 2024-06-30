@@ -143,6 +143,35 @@ const updatePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const { name, description } = req.body;
   //TODO: update playlist
+
+  if (!playlistId) {
+    throw new ApiError(400, "Invalid playlist");
+  }
+  if (!name && !description) {
+    throw new ApiError(
+      400,
+      "To update playlist please provide name or description"
+    );
+  }
+  const updatedData = {};
+  if (name) {
+    updatedData.name = name;
+  }
+  if (description) {
+    updatedData.description = description;
+  }
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
+    playlistId,
+
+    { $set: updatedData },
+    { new: true }
+  );
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(201, updatedPlaylist, "Playlist updated successfully")
+    );
 });
 
 export {
