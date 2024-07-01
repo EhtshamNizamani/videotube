@@ -1,5 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { Like } from "../models/like.model.js";
+import { Video } from "../models/video.model.js";
+import { Comment } from "../models/comment.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -7,6 +9,26 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: toggle like on video
+  if (!videoId) {
+    throw new ApiError(400, "Invalid video");
+  }
+
+  const video = await Video.findById(videoId);
+  const comment = await Comment.findById(videoId);
+  const likedAlready = await Like.findOne({
+    video: videoId,
+    likedBy: req.user?._id,
+  });
+
+  if (likedAlready) {
+    await Like.findByIdAndDelete(likedAlready?._id);
+    return res.status(200).json(new ApiResponse(201, { isLiked: false }));
+  }
+  const likedVideo = await Like.create({
+    video: videoId,
+    likedBy: req.user?._id,
+  });
+  res.status(200).json(new ApiResponse(201, { isLiked: true }));
 });
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
