@@ -24,7 +24,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     await Like.findByIdAndDelete(likedAlready?._id);
     return res.status(200).json(new ApiResponse(201, { isLiked: false }));
   }
-  const likedVideo = await Like.create({
+  await Like.create({
     video: videoId,
     likedBy: req.user?._id,
   });
@@ -33,7 +33,34 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
+
+  if (!commentId) {
+    throw new ApiError(400, "Invalid comment");
+  }
   //TODO: toggle like on comment
+
+  const comment = await Comment.findById(commentId);
+
+  if (!comment) {
+    throw new ApiError(400, "Comment not found");
+  }
+
+  const alreadyLiked = await Like.findOne({
+    comment: commentId,
+    likedBy: req.user?._id,
+  });
+  if (alreadyLiked) {
+    await Like.findByIdAndDelete(alreadyLiked?._id);
+
+    return res.status(200).json(new ApiResponse(201, { isLiked: false }));
+  }
+
+  await Like.create({
+    comment: commentId,
+    video: comment.video,
+    likedBy: req.user?._id,
+  });
+  res.status(200).json(new ApiResponse(201, { isLiked: true }));
 });
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
