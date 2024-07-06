@@ -8,6 +8,23 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const toggleSubscription = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
   // TODO: toggle subscription
+
+  if (!channelId) {
+    throw new ApiError(400, "Invalid channel");
+  }
+  const subscriber = await Subscription.findOne({ subscriber: channelId });
+  if (subscriber) {
+    await Subscription.findByIdAndDelete({
+      _id: subscriber._id,
+      subscriber: subscriber.subscriber,
+    });
+    return res
+      .status(200)
+      .json(new ApiResponse(201, "Unsubscribe the channel"));
+  }
+
+  await Subscription.create({ subscriber: channelId });
+  res.status(200).json(new ApiResponse(201, "Subscribe the channel"));
 });
 
 // controller to return subscriber list of a channel
@@ -15,9 +32,21 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
 
   const subscriber = await Subscription.aggregate([
-    { $match: { channelId } },
+    { $match: { channel: channelId } },
     {
-      $count: "subscriber",
+      $lookup: {
+        from: "users",
+        foreignField: "_id",
+        localField: "subscriber",
+        as: "subscribedToSubscriber",
+      },
+    },
+    {
+      $addFields: {
+        subscriberCount: {
+          $size: "$subscribedToSubscriber",
+        },
+      },
     },
   ]);
 
